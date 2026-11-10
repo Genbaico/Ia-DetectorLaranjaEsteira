@@ -8,8 +8,9 @@ determina o estágio de maturação (C1 a C6) e um Arduino aciona uma
 barreira servo-acionada que bloqueia a passagem quando a laranja está
 deteriorada (C6).
 
-Projeto desenvolvido para a disciplina de Inteligência Artificial do
-curso de Engenharia de Computação — FACAMP.
+Projeto inicialmente desenvolvido para a disciplina de Inteligência Artificial do
+curso de Engenharia de Computação — FACAMP e continuado na disciplina de Controle e Automação com a
+contrusção da esteira e sistema embarcado.
 
 ---
 

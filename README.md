@@ -70,24 +70,13 @@ etapa de limpeza.
 
 O arquivo `best.pt` tem cerca de 73 MB. Escolha uma das duas abordagens:
 
-**Opção A — Git LFS (recomendada)**
+**Git LFS**
 
 ```bash
 git lfs install
 git lfs track "*.pt"
 git add .gitattributes
 ```
-
-**Opção B — anexo de Release**
-
-Não versione o `.pt`. Publique-o como asset de uma Release e baixe com:
-
-```bash
-mkdir -p modelo
-curl -L -o modelo/best.pt <URL_DO_ASSET_DA_RELEASE>
-```
-
----
 
 ## Hardware
 
@@ -161,8 +150,8 @@ Comandos adicionais, disponíveis apenas pelo Monitor Serial:
 ## Instalação
 
 ```bash
-git clone <URL_DO_REPOSITORIO>
-cd <PASTA>
+git clone https://github.com/Genbaico/Ia-DetectorLaranjaEsteira
+cd <A pasta em que baixou>
 
 python3 -m venv venv
 source venv/bin/activate
@@ -186,7 +175,7 @@ Suba o firmware pela IDE do Arduino abrindo
 python classificador_embarcado.py --sem-arduino
 
 # câmera do celular via DroidCam (Wi-Fi)
-python classificador_embarcado.py --cam http://192.168.0.15:4747/video
+python classificador_embarcado.py --cam http://<Ip da Sua camera>:4747/video
 
 # câmera do celular via USB
 adb forward tcp:4747 tcp:4747
@@ -295,3 +284,12 @@ treinos. Quatro versões foram treinadas; a V3 (`yolov8l-cls` com dataset
 balanceado) foi selecionada como modelo final. A documentação acadêmica
 completa está no artigo científico que acompanha o projeto, redigido
 conforme as normas ABNT NBR 6022, 6023 e 14724.
+
+## Integrantes do Grupo
+
+| Nome | GitHub ou Linkedin | Role principal |
+|---|---| --- |
+| Henrique Radi (Eng de Comp.)   | [@Genbaico](https://github.com/Genbaico) | Treinamento da Laranja e logica do embarcado | 
+| Rafael Rodrigues (Eng de Comp.) | [@RafaelRodrigues1003](https://github.com/RafaelRodrigues1003) | Treinamento da Laranja e logica do embarcado |
+| Guilherme Prado (Eng de Prod.) | - | Construção da esteira |
+

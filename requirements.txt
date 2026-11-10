@@ -1,0 +1,11 @@
+# Classificador de laranjas C1-C6
+# Instale com: pip install -r requirements.txt
+#
+# O torch vem junto do ultralytics, com CUDA quando ha GPU NVIDIA.
+# Fixe as versoes abaixo nas mesmas usadas no treino (Google Colab)
+# para evitar divergencia no carregamento do checkpoint:
+#   no Colab, rode  pip show ultralytics  e substitua o numero aqui.
+
+ultralytics>=8.3.0
+opencv-python>=4.10.0
+pyserial>=3.5

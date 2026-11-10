@@ -1,0 +1,47 @@
+# Ambiente virtual Python
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+
+# Modelos e pesos
+# Comente a linha abaixo se for versionar o best.pt com Git LFS.
+# Mantenha comentada se for distribuir os pesos como asset de Release.
+# *.pt
+*.onnx
+*.engine
+last.pt
+
+# Saidas de treino do Ultralytics
+runs/
+weights/
+*.yaml.bak
+
+# Datasets (nao versionar imagens)
+dataset/
+data/
+*.zip
+*.tar.gz
+
+# Arduino
+*.hex
+*.elf
+build/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+*~
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Configuracao local do Ultralytics
+settings.json

@@ -1,0 +1,164 @@
+/*
+  laranja_atuador.ino  -- versao MG995 + bateria 18650 com shield
+
+  Recebe 1 byte pela serial vindo do script Python e aciona
+  servo de descarte + LEDs de status + buzzer.
+
+  Protocolo:
+    'V' -> C1/C2 imatura   : LED verde,    servo POS_IMATURA
+    'M' -> C3/C4/C5 madura : LED amarelo,  servo POS_MADURA (passa reto)
+    'R' -> C6 podre        : LED vermelho + buzzer, servo POS_PODRE (descarte)
+    '0' -> indefinido      : tudo apagado, servo POS_NEUTRA
+
+  Teste manual: abra o Monitor Serial em 9600 e digite V, M, R ou 0.
+  Comandos extras de calibracao (so pelo Monitor Serial):
+    '+' avanca 10 graus,  '-' recua 10 graus,  '?' imprime a posicao atual
+
+  ALIMENTACAO: o MG995 vai no 5V do shield 18650, NUNCA no 5V do Arduino.
+  GND do shield e GND do Arduino precisam estar unidos.
+  Capacitor de 1000uF entre 5V e GND, perto do servo.
+*/
+
+#include <Servo.h>
+
+const int PINO_SERVO    = 9;
+const int LED_VERDE     = 4;
+const int LED_AMARELO   = 5;
+const int LED_VERMELHO  = 6;
+const int BUZZER        = 7;
+
+// Limites de pulso em microssegundos.
+// MG995 original: 1000-2000. Muitos clones aceitam 500-2500 e giram mais.
+// Se o curso ficar curto demais, troque para 500 / 2500 e teste de novo.
+const int PULSO_MIN = 1000;
+const int PULSO_MAX = 2000;
+
+const int POS_IMATURA = 30;
+const int POS_MADURA  = 90;
+const int POS_PODRE   = 150;
+const int POS_NEUTRA  = 90;
+
+// Movimento gradual: passo pequeno limita o pico de corrente do MG995.
+// Aumente PASSO_MS para mover mais devagar (mais suave, mais lento).
+const int PASSO_GRAUS = 1;
+const int PASSO_MS    = 12;
+const int MS_ASSENTAR = 300;   // tempo para o servo assentar antes do detach
+
+Servo seletor;
+int posAtual = POS_NEUTRA;
+
+void apagarLeds() {
+  digitalWrite(LED_VERDE, LOW);
+  digitalWrite(LED_AMARELO, LOW);
+  digitalWrite(LED_VERMELHO, LOW);
+  digitalWrite(BUZZER, LOW);
+}
+
+/*
+  Move do angulo atual ate o alvo em passos pequenos.
+  Acopla o servo antes e desacopla depois: sem pulso o motor desliga,
+  para de consumir da bateria e nao fica zumbindo segurando posicao.
+*/
+void moverSuave(int alvo) {
+  alvo = constrain(alvo, 0, 180);
+  if (alvo == posAtual) return;
+
+  seletor.attach(PINO_SERVO, PULSO_MIN, PULSO_MAX);
+  seletor.write(posAtual);          // evita salto no instante do attach
+
+  int passo = (alvo > posAtual) ? PASSO_GRAUS : -PASSO_GRAUS;
+  while (abs(alvo - posAtual) >= PASSO_GRAUS) {
+    posAtual += passo;
+    seletor.write(posAtual);
+    delay(PASSO_MS);
+  }
+  posAtual = alvo;
+  seletor.write(posAtual);
+
+  delay(MS_ASSENTAR);
+  seletor.detach();
+}
+
+void bipar(int vezes) {
+  for (int i = 0; i < vezes; i++) {
+    digitalWrite(BUZZER, HIGH);
+    delay(120);
+    digitalWrite(BUZZER, LOW);
+    delay(80);
+  }
+}
+
+void setup() {
+  pinMode(LED_VERDE, OUTPUT);
+  pinMode(LED_AMARELO, OUTPUT);
+  pinMode(LED_VERMELHO, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
+  apagarLeds();
+
+  Serial.begin(9600);
+
+  // Assume a posicao neutra uma vez no boot e desacopla.
+  seletor.attach(PINO_SERVO, PULSO_MIN, PULSO_MAX);
+  seletor.write(POS_NEUTRA);
+  delay(600);
+  seletor.detach();
+  posAtual = POS_NEUTRA;
+
+  // Pisca os 3 LEDs: confirma que o sketch subiu e a fiacao esta ok.
+  digitalWrite(LED_VERDE, HIGH);
+  digitalWrite(LED_AMARELO, HIGH);
+  digitalWrite(LED_VERMELHO, HIGH);
+  delay(400);
+  apagarLeds();
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    char cmd = Serial.read();
+
+    switch (cmd) {
+      case 'V':
+        apagarLeds();
+        digitalWrite(LED_VERDE, HIGH);
+        moverSuave(POS_IMATURA);
+        break;
+
+      case 'M':
+        apagarLeds();
+        digitalWrite(LED_AMARELO, HIGH);
+        moverSuave(POS_MADURA);
+        break;
+
+      case 'R':
+        apagarLeds();
+        digitalWrite(LED_VERMELHO, HIGH);
+        moverSuave(POS_PODRE);          // move primeiro, bipa depois
+        bipar(2);
+        digitalWrite(LED_VERMELHO, HIGH);
+        break;
+
+      case '0':
+        apagarLeds();
+        moverSuave(POS_NEUTRA);
+        break;
+
+      // --- calibracao manual pelo Monitor Serial ---
+      case '+':
+        moverSuave(posAtual + 10);
+        Serial.println(posAtual);
+        break;
+
+      case '-':
+        moverSuave(posAtual - 10);
+        Serial.println(posAtual);
+        break;
+
+      case '?':
+        Serial.println(posAtual);
+        break;
+
+      default:
+        break;  // ignora ruido, quebra de linha, etc.
+    }
+  }
+}

@@ -13,10 +13,10 @@ const int US_PARADO = 1500;   // ponto neutro (ajuste fino aqui)
 const int US_FECHAR = 2000;   // gira no sentido de fechar
 const int US_ABRIR  = 1300;   // gira no sentido de abrir
 
-const int MS_FECHAR = 500;    
+const int MS_FECHAR = 510;    
 const int MS_ABRIR  = 550;    
 
-const int MS_PULSO  = 100;    // duracao dos pulsos de calibracao 'f' e 'a'
+const int MS_PULSO  = 1000;    // duracao dos pulsos de calibracao 'f' e 'a'
 
 const int MS_BARREIRA = 2000; // tempo fechada antes de reabrir
 

@@ -11,7 +11,7 @@ os.environ.setdefault("QT_QPA_FONTDIR", "/usr/share/fonts/truetype/dejavu")
 import cv2
 from ultralytics import YOLO
 
-MODELO_PADRAO = "best.pt"        # seu V3 (yolov8l-cls) baixado do Drive
+MODELO_PADRAO = "modelo/best.pt"        # seu V3 (yolov8l-cls) baixado do Drive
 PORTA_PADRAO = "/dev/ttyACM0"    # confira com: ls /dev/ttyACM* /dev/ttyUSB*
 BAUD = 9600                      # tem que ser igual ao do sketch .ino
 

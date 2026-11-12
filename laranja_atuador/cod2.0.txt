@@ -1,0 +1,202 @@
+/*
+  laranja_atuador.ino  -- MG995 + ponte H (esteira) + bateria 18650 com shield
+  Versao sem LEDs.
+
+  Recebe 1 byte pela serial vindo do script Python:
+    'V' -> C1/C2 imatura   : para esteira, servo POS_IMATURA, religa esteira
+    'M' -> C3/C4/C5 madura : para esteira, servo POS_MADURA,  religa esteira
+    'R' -> C6 podre        : para esteira, servo POS_PODRE, bipa, religa esteira
+    '0' -> indefinido      : servo POS_NEUTRA, esteira ligada
+
+  Comandos extras pelo Monitor Serial (teste/calibracao):
+    'L' liga esteira        'P' para esteira
+    '+' servo +10 graus     '-' servo -10 graus     '?' imprime posicao
+
+  ALIMENTACAO
+    - MG995 no 5V do shield 18650. NUNCA no 5V do Arduino.
+    - Motor da esteira na entrada de potencia da ponte H.
+    - GND do shield, GND da ponte H e GND do Arduino: todos no MESMO ponto.
+    - Capacitor 1000uF entre 5V e GND, perto do servo.
+
+  PONTE H
+    L298N  : IN1->D3, IN2->D4, ENA->D5 (retire o jumper do ENA).
+             Ela derruba ~2V; com entrada de 5V o motor fica fraco.
+             Prefira 6-12V na entrada de potencia.
+    L9110S / MX1508 : sao 2 pinos por canal (IA/IB). Ligue IA->D3 e IB->D5,
+             defina ESTEIRA_2PINOS como true abaixo.
+*/
+
+#include <Servo.h>
+
+// ---------------------------------------------------------------- pinos
+const int PINO_SERVO = 9;
+const int BUZZER     = 7;
+
+const int H_IN1 = 3;
+const int H_IN2 = 4;
+const int H_ENA = 5;   // precisa ser pino PWM
+
+// true  = ponte tipo L9110S/MX1508 (IA=H_IN1, IB=H_ENA, sem pino enable)
+// false = ponte tipo L298N (IN1, IN2 + ENA com PWM)
+const bool ESTEIRA_2PINOS = false;
+
+// ------------------------------------------------------------- parametros
+const int VEL_ESTEIRA = 200;   // 0-255. Abaixo de ~120 o motor costuma nem partir.
+const int MS_PARADA   = 250;   // espera a esteira inercialmente parar
+const int MS_RELIGAR  = 250;   // espera antes de religar, apos o servo assentar
+
+const int PULSO_MIN = 1000;    // MG995 original: 1000-2000
+const int PULSO_MAX = 2000;    // clones: experimente 500 / 2500
+
+const int POS_IMATURA = 0;
+const int POS_MADURA  = 0;
+const int POS_PODRE   = 90;
+const int POS_NEUTRA  = 0;
+
+const int PASSO_GRAUS = 1;     // movimento gradual limita o pico de corrente
+const int PASSO_MS    = 12;    // aumente para mover mais devagar
+const int MS_ASSENTAR = 300;   // tempo antes de desacoplar o servo
+
+// ----------------------------------------------------------------- estado
+Servo seletor;
+int  posAtual = POS_NEUTRA;
+bool esteiraLigada = false;
+
+// -------------------------------------------------------------- esteira
+void esteiraLigar() {
+  if (ESTEIRA_2PINOS) {
+    digitalWrite(H_IN1, LOW);
+    analogWrite(H_ENA, VEL_ESTEIRA);
+  } else {
+    digitalWrite(H_IN1, HIGH);
+    digitalWrite(H_IN2, LOW);
+    analogWrite(H_ENA, VEL_ESTEIRA);
+  }
+  esteiraLigada = true;
+}
+
+void esteiraParar() {
+  if (ESTEIRA_2PINOS) {
+    analogWrite(H_ENA, 0);
+    digitalWrite(H_IN1, LOW);
+  } else {
+    analogWrite(H_ENA, 0);
+    digitalWrite(H_IN1, LOW);
+    digitalWrite(H_IN2, LOW);
+  }
+  esteiraLigada = false;
+}
+
+// ---------------------------------------------------------------- servo
+/*
+  Move do angulo atual ate o alvo em passos pequenos.
+  Acopla antes e desacopla depois: sem pulso o motor desliga,
+  para de consumir da bateria e nao fica zumbindo segurando posicao.
+*/
+void moverSuave(int alvo) {
+  alvo = constrain(alvo, 0, 90);
+  if (alvo == posAtual) return;
+
+  seletor.attach(PINO_SERVO, PULSO_MIN, PULSO_MAX);
+  seletor.write(posAtual);              // evita salto no instante do attach
+
+  int passo = (alvo > posAtual) ? PASSO_GRAUS : -PASSO_GRAUS;
+  while (abs(alvo - posAtual) >= PASSO_GRAUS) {
+    posAtual += passo;
+    seletor.write(posAtual);
+    delay(PASSO_MS);
+  }
+  posAtual = alvo;
+  seletor.write(posAtual);
+
+  delay(MS_ASSENTAR);
+  seletor.detach();
+}
+
+void bipar(int vezes) {
+  for (int i = 0; i < vezes; i++) {
+    digitalWrite(BUZZER, HIGH);
+    delay(120);
+    digitalWrite(BUZZER, LOW);
+    delay(80);
+  }
+}
+
+/*
+  Ciclo completo de classificacao: parar a esteira antes de mexer a comporta
+  (senao a fruta e empurrada contra ela), atuar, religar.
+*/
+void classificar(int alvo, bool alarme) {
+  esteiraParar();
+  delay(MS_PARADA);
+
+  moverSuave(alvo);
+  if (alarme) bipar(2);
+
+  delay(MS_RELIGAR);
+  esteiraLigar();
+}
+
+// ----------------------------------------------------------------- setup
+void setup() {
+  pinMode(BUZZER, OUTPUT);
+  digitalWrite(BUZZER, LOW);
+
+  pinMode(H_IN1, OUTPUT);
+  pinMode(H_IN2, OUTPUT);
+  pinMode(H_ENA, OUTPUT);
+  esteiraParar();
+
+  Serial.begin(9600);
+
+  // Assume a posicao neutra uma vez no boot e desacopla.
+  seletor.attach(PINO_SERVO, PULSO_MIN, PULSO_MAX);
+  seletor.write(POS_NEUTRA);
+  delay(600);
+  seletor.detach();
+  posAtual = POS_NEUTRA;
+
+  // Bipe curto confirma que o sketch subiu (substitui o pisca dos LEDs).
+  bipar(1);
+
+  esteiraLigar();
+}
+
+// ------------------------------------------------------------------ loop
+void loop() {
+  if (Serial.available() > 0) {
+    char cmd = Serial.read();
+
+    switch (cmd) {
+      case 'V': classificar(POS_IMATURA, false); break;
+      case 'M': classificar(POS_MADURA,  false); break;
+      case 'R': classificar(POS_PODRE,   true);  break;
+
+      case '0':
+        moverSuave(POS_NEUTRA);
+        if (!esteiraLigada) esteiraLigar();
+        break;
+
+      // --- teste manual pelo Monitor Serial ---
+      case 'L': esteiraLigar(); break;
+      case 'P': esteiraParar(); break;
+
+      case '+':
+        moverSuave(posAtual + 10);
+        Serial.println(posAtual);
+        break;
+
+      case '-':
+        moverSuave(posAtual - 10);
+        Serial.println(posAtual);
+        break;
+
+      case '?':
+        Serial.println(posAtual);
+        break;
+
+      default:
+        break;  // ignora ruido, quebra de linha, etc.
+    }
+  }
+}

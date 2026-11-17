@@ -290,7 +290,7 @@ conforme as normas ABNT NBR 6022, 6023 e 14724.
 
 | Nome | GitHub ou Linkedin | Role principal |
 |---|---| --- |
-| Henrique Radi (Eng de Comp.)   | [@Genbaico](https://github.com/Genbaico) | Treinamento da Laranja e logica do embarcado | 
-| Rafael Rodrigues (Eng de Comp.) | [@RafaelRodrigues1003](https://github.com/RafaelRodrigues1003) | Treinamento da Laranja e logica do embarcado |
-| Guilherme Prado (Eng de Prod.) | - | Construção da esteira |
+| Henrique Radi (Eng de Comp.)   | [@Genbaico](https://github.com/Genbaico) | Treinamento da IA-Laranja e logica do embarcado | 
+| Rafael Rodrigues (Eng de Comp.) | [@RafaelRodrigues1003](https://github.com/RafaelRodrigues1003) | Treinamento da IA-Laranja e logica do embarcado |
+| Guilherme Prado (Eng de Prod.) | [LI-Guilherme Prado](https://www.linkedin.com/in/guilherme-prado-b3bb5437a?utm_source=share_via&utm_content=profile&utm_medium=member_io) | Construção da esteira |
 
